@@ -17,6 +17,7 @@
 package at.bronzels.kafka.connect.kudu.cdc.debezium.rdbms;
 
 import at.bronzels.libcdcdw.OperationType;
+import at.bronzels.libcdcdw.kudu.pool.MyKudu;
 import at.grahsl.kafka.connect.converter.SinkDocument;
 import at.bronzels.kafka.connect.kudu.cdc.CdcOperation;
 import at.bronzels.libcdcdw.kudu.KuduOperation;
@@ -35,7 +36,7 @@ import java.util.Collections;
 public class RdbmsDelete implements CdcOperation {
 
     @Override
-    public Collection<Operation> perform(SinkDocument doc, KuduTable collection, KuduClient kuduClient, boolean isSrcFieldNameWTUpperCase, Schema valueSchema) {
+    public Collection<Operation> perform(SinkDocument doc, MyKudu myKudu , boolean isSrcFieldNameWTUpperCase, Schema valueSchema) {
 
         BsonDocument keyDoc = doc.getKeyDoc().orElseThrow(
                 () -> new DataException("error: key doc must not be missing for delete operation")
@@ -47,7 +48,7 @@ public class RdbmsDelete implements CdcOperation {
 
         try {
             BsonDocument filterDoc = RdbmsHandler.generateDeleteFilterDoc(keyDoc, valueDoc, OperationType.DELETE);
-            Operation operation = KuduOperation.getOperation(OperationType.DELETE, collection, filterDoc, isSrcFieldNameWTUpperCase);
+            Operation operation = KuduOperation.getOperation(OperationType.DELETE, myKudu.getKuduTable(), filterDoc, isSrcFieldNameWTUpperCase);
             return operation != null ? Collections.singleton(operation) : null;
         } catch(Exception exc) {
             throw new DataException(exc);

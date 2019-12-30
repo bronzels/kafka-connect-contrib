@@ -1,5 +1,6 @@
 package at.bronzels.kafka.connect.kudu.writemodel.strategy;
 
+import at.bronzels.libcdcdw.kudu.pool.MyKudu;
 import at.grahsl.kafka.connect.converter.SinkDocument;
 import at.bronzels.libcdcdw.kudu.KuduOperation;
 
@@ -20,14 +21,14 @@ public class ReplaceOneDefaultStrategy extends WriteModelStrategy {
     }
 
     @Override
-    public Operation createWriteModel(SinkDocument document, KuduTable table, Schema valueSchema) {
+    public Operation createWriteModel(SinkDocument document, MyKudu myKudu, Schema valueSchema) {
 
         BsonDocument vd = document.getValueDoc().orElseThrow(
                 () -> new DataException("error: cannot build the WriteModel since"
                         + " the value document was missing unexpectedly")
         );
 
-        Upsert upsert = table.newUpsert();
+        Upsert upsert = myKudu.getKuduTable().newUpsert();
         PartialRow row = upsert.getRow();
 
         KuduOperation.haveRowAddedBy(row, vd, isSrcFieldNameWTUpperCase);

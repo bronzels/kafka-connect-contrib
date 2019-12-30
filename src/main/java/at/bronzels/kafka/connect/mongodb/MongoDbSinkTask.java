@@ -241,7 +241,7 @@ public class MongoDbSinkTask extends SinkTask {
 
     List<? extends WriteModel<BsonDocument>>
                             buildWriteModelCDC(Collection<SinkRecord> records, String collectionName) {
-        LOGGER.debug("building CDC write model for {} record(s) into collection {}", records.size(), collectionName);
+        LOGGER.debug("building CDC write model for {} record(s) into collection {}, cdcHandler size: {}", records.size(), collectionName, cdcHandlers.size());
         return records.stream()
                 .map(sinkConverter::convert)
                 .map(cdcHandlers.get(collectionName)::handle)

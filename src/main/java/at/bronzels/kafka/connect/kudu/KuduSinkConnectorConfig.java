@@ -41,6 +41,8 @@ import java.util.stream.Stream;
 
 public class KuduSinkConnectorConfig extends SinkConnectorConfig {
     public static final String CONNECTION_URI_DEFAULT = "beta-hbase01:7051";
+    public static final String REDIS_URL_DEFAULT = "beta-hbase01:6379";
+    public static final String DIST_LOCK_PREFIX = "metabase";
 
     public static final String KUDU_PRESTO_CATALOG_DEFAULT = "presto";
     public static final String KUDU_PRESTO_CATALOG_CONF = "kudu.presto.catalog";

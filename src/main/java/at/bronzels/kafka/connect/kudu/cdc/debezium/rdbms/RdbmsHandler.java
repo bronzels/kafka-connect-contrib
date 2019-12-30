@@ -17,6 +17,7 @@
 package at.bronzels.kafka.connect.kudu.cdc.debezium.rdbms;
 
 import at.bronzels.libcdcdw.OperationType;
+import at.bronzels.libcdcdw.kudu.pool.MyKudu;
 import at.grahsl.kafka.connect.converter.SinkDocument;
 import at.bronzels.kafka.connect.kudu.KuduSinkConnectorConfig;
 import at.bronzels.kafka.connect.kudu.cdc.CdcOperation;
@@ -58,7 +59,7 @@ public class RdbmsHandler extends DebeziumCdcHandler {
     }
 
     @Override
-    public Optional<Collection<Operation>> handle(SinkDocument doc, KuduTable collection, KuduClient kuduClient, Schema valueSchema) {
+    public Optional<Collection<Operation>> handle(SinkDocument doc, MyKudu myKudu, Schema valueSchema) {
 
         BsonDocument keyDoc = doc.getKeyDoc().orElseGet(BsonDocument::new);
 
@@ -70,7 +71,7 @@ public class RdbmsHandler extends DebeziumCdcHandler {
         }
 
         return Optional.of(getCdcOperation(valueDoc)
-                            .perform(new SinkDocument(keyDoc,valueDoc), collection, kuduClient, isSrcFieldNameWTUpperCase, valueSchema));
+                            .perform(new SinkDocument(keyDoc,valueDoc), myKudu, isSrcFieldNameWTUpperCase, valueSchema));
     }
 
     protected static BsonDocument generateDeleteFilterDoc(BsonDocument keyDoc, BsonDocument valueDoc, OperationType opType) {

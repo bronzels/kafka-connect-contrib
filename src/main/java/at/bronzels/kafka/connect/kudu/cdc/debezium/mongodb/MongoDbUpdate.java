@@ -17,6 +17,8 @@
 package at.bronzels.kafka.connect.kudu.cdc.debezium.mongodb;
 
 import at.bronzels.libcdcdw.OperationType;
+import at.bronzels.libcdcdw.kudu.pool.MyKudu;
+import at.bronzels.libcdcdwstr.flink.util.MyKuduTypeValue;
 import at.grahsl.kafka.connect.converter.SinkDocument;
 import at.bronzels.kafka.connect.kudu.cdc.CdcOperation;
 import at.bronzels.libcdcdw.util.MyBson;
@@ -24,6 +26,7 @@ import at.bronzels.libcdcdw.kudu.KuduOperation;
 
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.errors.DataException;
+import org.apache.kudu.Type;
 import org.apache.kudu.client.*;
 import org.bson.BsonDocument;
 import org.bson.BsonNull;
@@ -34,14 +37,14 @@ import java.util.*;
 
 public class MongoDbUpdate implements CdcOperation {
     private static Logger logger = LoggerFactory.getLogger(MongoDbUpdate.class);
+
     String methodSet = "$set";
-    String methodInc = "$inc";
     String methodUnset = "$unset";
 
     public static final String JSON_DOC_FIELD_PATH = "patch";
 
     @Override
-    public Collection<Operation> perform(SinkDocument doc, KuduTable collection, KuduClient kuduClient, boolean isSrcFieldNameWTUpperCase, Schema valueSchema) {
+    public Collection<Operation> perform(SinkDocument doc, MyKudu myKudu, boolean isSrcFieldNameWTUpperCase, Schema valueSchema) {
         //patch contains idempotent change only to update original document with
         BsonDocument keyDoc = doc.getKeyDoc().orElseThrow(
                 () -> new DataException("error: key doc must not be missing for update operation")
@@ -55,12 +58,6 @@ public class MongoDbUpdate implements CdcOperation {
                 valueDoc.getString(JSON_DOC_FIELD_PATH).getValue()
         );
         Set<String> keySet = updateDoc.keySet();
-        if (keySet.contains(methodInc)) {
-            BsonDocument incrDoc = updateDoc.get(methodInc).asDocument();
-            String _idValue = keyDoc.getString(at.bronzels.libcdcdw.Constants.RK_4_MONGODB_AND_OTHER_DBS_ID_FIELD_NAME).getValue();
-            Operation opIncr = KuduOperation.getIncrEmulatedOperation(collection, kuduClient, _idValue, incrDoc, isSrcFieldNameWTUpperCase);
-            return Collections.singleton(opIncr);
-        }
 
         if (keySet.contains(methodSet))
             updateDoc = updateDoc.get(methodSet).asDocument();
@@ -69,10 +66,16 @@ public class MongoDbUpdate implements CdcOperation {
             updateDoc = new BsonDocument();
             for (String key : keys2Unset)
                 updateDoc.put(key, new BsonNull());
-        } else
-            throw new RuntimeException(String.format("unrecognized format, keyDoc:%s, updateDoc:%s", keyDoc, updateDoc));
+        }
+            //throw new RuntimeException(String.format("unrecognized format, keyDoc:%s, updateDoc:%s", keyDoc, updateDoc));
 
         List<Operation> opList = new ArrayList<>();
+
+        Map<String, Type> newCol2TypeMap = MyKuduTypeValue.getBsonCol2Add(myKudu.getName2TypeMap(), updateDoc, isSrcFieldNameWTUpperCase);
+        if(newCol2TypeMap.size() > 0){
+            logger.info("col name to add : {}, type: {}", newCol2TypeMap.keySet(), newCol2TypeMap.values());
+            myKudu.addColumns(newCol2TypeMap);
+        }
 
         //patch contains full new document for replacement
         if (updateDoc.containsKey(at.bronzels.libcdcdw.Constants.RK_4_MONGODB_AND_OTHER_DBS_ID_FIELD_NAME)) {
@@ -80,11 +83,11 @@ public class MongoDbUpdate implements CdcOperation {
             BsonDocument filterDoc =
                     new BsonDocument(at.bronzels.libcdcdw.Constants.RK_4_MONGODB_AND_OTHER_DBS_ID_FIELD_NAME,
                             updateDoc.get(at.bronzels.libcdcdw.Constants.RK_4_MONGODB_AND_OTHER_DBS_ID_FIELD_NAME));
-            Operation opDelete = KuduOperation.getOperation(OperationType.DELETE, collection, filterDoc, isSrcFieldNameWTUpperCase);
+            Operation opDelete = KuduOperation.getOperation(OperationType.DELETE, myKudu.getKuduTable(), filterDoc, isSrcFieldNameWTUpperCase);
             if (opDelete != null)
                 opList.add(opDelete);
 
-            Operation opInsert = KuduOperation.getOperation(OperationType.CREATE, collection, updateDoc, isSrcFieldNameWTUpperCase);
+            Operation opInsert = KuduOperation.getOperation(OperationType.CREATE, myKudu.getKuduTable(), updateDoc, isSrcFieldNameWTUpperCase);
             if (opInsert != null)
                 opList.add(opInsert);
 
@@ -98,7 +101,7 @@ public class MongoDbUpdate implements CdcOperation {
         );
 
         BsonDocument merged = MyBson.getMerged(filterDoc, updateDoc);
-        Operation opUpdate = KuduOperation.getOperation(OperationType.UPDATE, collection, merged, isSrcFieldNameWTUpperCase);
+        Operation opUpdate = KuduOperation.getOperation(OperationType.UPDATE, myKudu.getKuduTable(), merged, isSrcFieldNameWTUpperCase);
         if (opUpdate != null)
             opList.add(opUpdate);
 

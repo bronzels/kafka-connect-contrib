@@ -17,6 +17,7 @@
 package at.bronzels.kafka.connect.kudu.cdc;
 
 import at.bronzels.kafka.connect.kudu.KuduSinkConnectorConfig;
+import at.bronzels.libcdcdw.kudu.pool.MyKudu;
 import at.grahsl.kafka.connect.converter.SinkDocument;
 import org.apache.kafka.connect.data.Schema;
 
@@ -41,6 +42,6 @@ public abstract class CdcHandler {
         return this.config;
     }
 
-    public abstract Optional<Collection<Operation>> handle(SinkDocument doc, KuduTable collection, KuduClient kuduClient, Schema valueSchema);
+    public abstract Optional<Collection<Operation>> handle(SinkDocument doc, MyKudu mykudu, Schema valueSchema);
 
 }

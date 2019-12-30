@@ -20,6 +20,7 @@ import at.bronzels.libcdcdw.OperationType;
 import at.bronzels.kafka.connect.kudu.KuduSinkConnectorConfig;
 import at.bronzels.kafka.connect.kudu.cdc.CdcOperation;
 import at.bronzels.kafka.connect.kudu.cdc.debezium.DebeziumCdcHandler;
+import at.bronzels.libcdcdw.kudu.pool.MyKudu;
 import at.grahsl.kafka.connect.converter.SinkDocument;
 
 import org.apache.kafka.connect.data.Schema;
@@ -56,7 +57,7 @@ public class MongoDbHandler extends DebeziumCdcHandler {
     }
 
     @Override
-    public Optional<Collection<Operation>> handle(SinkDocument doc, KuduTable collection, KuduClient kuduClient, Schema valueSchema) {
+    public Optional<Collection<Operation>> handle(SinkDocument doc, MyKudu mykudu, Schema valueSchema) {
 
         BsonDocument keyDoc = doc.getKeyDoc().orElseThrow(
                 () -> new DataException("error: key document must not be missing for CDC mode")
@@ -74,7 +75,7 @@ public class MongoDbHandler extends DebeziumCdcHandler {
         logger.debug("key: "+keyDoc.toString());
         logger.debug("value: "+valueDoc.toString());
 
-        Collection<Operation> opCollection = getCdcOperation(valueDoc).perform(doc, collection, kuduClient, isSrcFieldNameWTUpperCase, valueSchema);
+        Collection<Operation> opCollection = getCdcOperation(valueDoc).perform(doc, mykudu, isSrcFieldNameWTUpperCase, valueSchema);
         if(opCollection != null)
             return Optional.of(opCollection);
         else

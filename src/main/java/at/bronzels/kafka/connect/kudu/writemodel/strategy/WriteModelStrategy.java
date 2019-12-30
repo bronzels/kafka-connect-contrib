@@ -1,5 +1,6 @@
 package at.bronzels.kafka.connect.kudu.writemodel.strategy;
 
+import at.bronzels.libcdcdw.kudu.pool.MyKudu;
 import at.grahsl.kafka.connect.converter.SinkDocument;
 
 import org.apache.kafka.connect.data.Schema;
@@ -14,6 +15,6 @@ abstract public class WriteModelStrategy {
         this.isSrcFieldNameWTUpperCase = isSrcFieldNameWTUpperCase;
     }
 
-    abstract public Operation createWriteModel(SinkDocument document, KuduTable table, Schema valueSchema);
+    abstract public Operation createWriteModel(SinkDocument document, MyKudu mykudu, Schema valueSchema);
 
 }

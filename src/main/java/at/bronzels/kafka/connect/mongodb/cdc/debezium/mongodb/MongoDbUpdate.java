@@ -46,6 +46,8 @@ public class MongoDbUpdate implements CdcOperation {
                     valueDoc.getString(JSON_DOC_FIELD_PATH).getValue()
             );
 
+            if(updateDoc.containsKey("$v"))
+                updateDoc.remove("$v");
             //patch contains full new document for replacement
             if(updateDoc.containsKey(at.bronzels.libcdcdw.Constants.RK_4_MONGODB_AND_OTHER_DBS_ID_FIELD_NAME)) {
                 BsonDocument filterDoc =

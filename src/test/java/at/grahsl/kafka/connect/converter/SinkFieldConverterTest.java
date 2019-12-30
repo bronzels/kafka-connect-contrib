@@ -17,7 +17,7 @@
 package at.grahsl.kafka.connect.converter;
 
 import at.grahsl.kafka.connect.converter.types.sink.bson.*;
-import at.grahsl.kafka.connect.converter.types.sink.bson.logical.DateFieldConverter;
+import at.grahsl.kafka.connect.converter.types.sink.bson.logical.DebDateFieldConverter;
 import at.grahsl.kafka.connect.converter.types.sink.bson.logical.DecimalFieldConverter;
 import at.grahsl.kafka.connect.converter.types.sink.bson.logical.TimeFieldConverter;
 import at.grahsl.kafka.connect.converter.types.sink.bson.logical.TimestampFieldConverter;
@@ -340,7 +340,7 @@ public class SinkFieldConverterTest {
     @DisplayName("tests for logical type date field conversions")
     public List<DynamicTest> testDateFieldConverter() {
 
-        SinkFieldConverter converter = new DateFieldConverter();
+        SinkFieldConverter converter = new DebDateFieldConverter();
 
         List<DynamicTest> tests = new ArrayList<>();
         new ArrayList<>(Arrays.asList(

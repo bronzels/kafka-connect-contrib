@@ -17,10 +17,9 @@
 package at.grahsl.kafka.connect.converter;
 
 import at.grahsl.kafka.connect.converter.types.sink.bson.*;
-import at.grahsl.kafka.connect.converter.types.sink.bson.logical.DateFieldConverter;
-import at.grahsl.kafka.connect.converter.types.sink.bson.logical.DecimalFieldConverter;
-import at.grahsl.kafka.connect.converter.types.sink.bson.logical.TimeFieldConverter;
-import at.grahsl.kafka.connect.converter.types.sink.bson.logical.TimestampFieldConverter;
+import at.grahsl.kafka.connect.converter.types.sink.bson.logical.*;
+import io.debezium.time.MicroTimestamp;
+import io.debezium.time.ZonedTimestamp;
 import org.apache.kafka.connect.data.Date;
 import org.apache.kafka.connect.data.*;
 import org.apache.kafka.connect.errors.ConnectException;
@@ -40,7 +39,9 @@ public class AvroJsonSchemafulRecordConverter implements RecordConverter {
 
     public static final Set<String> LOGICAL_TYPE_NAMES = new HashSet<>(
             Arrays.asList(Date.LOGICAL_NAME, Decimal.LOGICAL_NAME,
-                            Time.LOGICAL_NAME, Timestamp.LOGICAL_NAME)
+                            Time.LOGICAL_NAME, Timestamp.LOGICAL_NAME,
+                    ZonedTimestamp.SCHEMA_NAME, io.debezium.time.Timestamp.SCHEMA_NAME,
+                    MicroTimestamp.SCHEMA_NAME, io.debezium.time.Date.SCHEMA_NAME)
         );
 
     private final Map<Schema.Type, SinkFieldConverter> converters = new HashMap<>();
@@ -62,10 +63,15 @@ public class AvroJsonSchemafulRecordConverter implements RecordConverter {
         registerSinkFieldConverter(new BytesFieldConverter());
 
         //logical types
-        registerSinkFieldLogicalConverter(new DateFieldConverter());
+        registerSinkFieldLogicalConverter(new DebDateFieldConverter());
         registerSinkFieldLogicalConverter(new TimeFieldConverter());
         registerSinkFieldLogicalConverter(new TimestampFieldConverter());
         registerSinkFieldLogicalConverter(new DecimalFieldConverter());
+        registerSinkFieldLogicalConverter(new ZonedTimestampFieldConverter());
+        registerSinkFieldLogicalConverter(new DebTimestampFieldConverter());
+        registerSinkFieldLogicalConverter(new DebMicroTimestampFieldConverter());
+        registerSinkFieldLogicalConverter(new DebDateFieldConverter());
+
     }
 
     @Override

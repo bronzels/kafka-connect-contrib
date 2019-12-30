@@ -18,12 +18,15 @@ package at.grahsl.kafka.connect.converter;
 
 import org.bson.*;
 import org.bson.types.ObjectId;
+import org.joda.time.DateTime;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.platform.runner.JUnitPlatform;
 import org.junit.runner.RunWith;
 
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -128,6 +131,15 @@ public class SinkDocumentTest {
                 () -> assertTrue(clone.getKeyDoc().get().equals(orig.getKeyDoc().get())),
                 () -> assertTrue(clone.getValueDoc().get().equals(orig.getValueDoc().get()))
         );
+    }
+
+    @Test
+    public void testBsonTimestamp(){
+        DateTime dateTime = new DateTime("2016-02-15T00:00:00.000+08:00");
+        BsonTimestamp t = new BsonTimestamp(dateTime.getMillis());
+        System.out.println(t.asTimestamp());
+        Timestamp tt =  new Timestamp(dateTime.getMillis());
+        System.out.println(tt.toString());
     }
 
 }

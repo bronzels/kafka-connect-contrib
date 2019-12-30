@@ -14,20 +14,23 @@
  * limitations under the License.
  */
 
-package at.bronzels.kafka.connect.kudu.cdc;
+package at.grahsl.kafka.connect.converter.types.sink.bson.logical;
 
-import at.bronzels.libcdcdw.kudu.pool.MyKudu;
-import at.grahsl.kafka.connect.converter.SinkDocument;
+import at.grahsl.kafka.connect.converter.SinkFieldConverter;
+import org.bson.BsonInt64;
+import org.bson.BsonValue;
 
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kudu.client.KuduClient;
-import org.apache.kudu.client.KuduTable;
-import org.apache.kudu.client.Operation;
+public class DebDateFieldConverter extends SinkFieldConverter {
 
-import java.util.Collection;
+    public DebDateFieldConverter() {
+        super(io.debezium.time.Date.builder().schema());
+    }
 
-public interface CdcOperation {
-
-    Collection<Operation> perform(SinkDocument doc, MyKudu myKudu, boolean isSrcFieldNameWTUpperCase, Schema valueSchema);
-
+    @Override
+    public BsonValue toBson(Object data) {
+        if (data != null)
+            return new BsonInt64(Integer.parseInt(data.toString()));
+        else
+            return null;
+    }
 }

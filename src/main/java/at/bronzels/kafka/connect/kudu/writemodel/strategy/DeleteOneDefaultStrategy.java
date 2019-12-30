@@ -1,5 +1,6 @@
 package at.bronzels.kafka.connect.kudu.writemodel.strategy;
 
+import at.bronzels.libcdcdw.kudu.pool.MyKudu;
 import at.grahsl.kafka.connect.converter.SinkDocument;
 import at.bronzels.libcdcdw.kudu.KuduOperation;
 
@@ -18,14 +19,14 @@ public class DeleteOneDefaultStrategy extends WriteModelStrategy {
     }
 
     @Override
-    public Operation createWriteModel(SinkDocument document, KuduTable table, Schema valueSchema) {
+    public Operation createWriteModel(SinkDocument document, MyKudu kudu, Schema valueSchema) {
 
         BsonDocument kd = document.getKeyDoc().orElseThrow(
                 () -> new DataException("error: cannot build the WriteModel since"
                         + " the key document was missing unexpectedly")
         );
 
-        Delete delete = table.newDelete();
+        Delete delete = kudu.getKuduTable().newDelete();
         PartialRow row = delete.getRow();
 
         KuduOperation.haveRowAddedBy(row, kd, isSrcFieldNameWTUpperCase);

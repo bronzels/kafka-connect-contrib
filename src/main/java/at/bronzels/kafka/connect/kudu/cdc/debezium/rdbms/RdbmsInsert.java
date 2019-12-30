@@ -17,24 +17,30 @@
 package at.bronzels.kafka.connect.kudu.cdc.debezium.rdbms;
 
 import at.bronzels.libcdcdw.OperationType;
+import at.bronzels.libcdcdw.kudu.pool.MyKudu;
+import at.bronzels.libcdcdwstr.flink.util.MyKuduTypeValue;
 import at.grahsl.kafka.connect.converter.SinkDocument;
 import at.bronzels.kafka.connect.kudu.cdc.CdcOperation;
 import at.bronzels.libcdcdw.kudu.KuduOperation;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.errors.DataException;
-import org.apache.kudu.client.KuduClient;
-import org.apache.kudu.client.KuduTable;
+import org.apache.kudu.Type;
 import org.apache.kudu.client.Operation;
 
 import org.bson.BsonDocument;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Map;
 
 public class RdbmsInsert implements CdcOperation {
 
+    private static Logger logger = LoggerFactory.getLogger(RdbmsInsert.class);
+
     @Override
-    public Collection<Operation> perform(SinkDocument doc, KuduTable collection, KuduClient kuduClient, boolean isSrcFieldNameWTUpperCase, Schema valueSchema) {
+    public Collection<Operation> perform(SinkDocument doc, MyKudu myKudu, boolean isSrcFieldNameWTUpperCase, Schema valueSchema) {
 
         BsonDocument valueDoc = doc.getValueDoc().orElseThrow(
                 () -> new DataException("error: value doc must not be missing for insert operation")
@@ -42,7 +48,13 @@ public class RdbmsInsert implements CdcOperation {
 
         try {
             BsonDocument insertDoc = RdbmsHandler.generateUpsertOrReplaceDoc(valueDoc);
-            Operation operation = KuduOperation.getOperation(OperationType.CREATE, collection, insertDoc, isSrcFieldNameWTUpperCase);
+
+            /*Map<String, Type> newCol2TypeMap = MyKuduTypeValue.getBsonCol2Add(myKudu.getName2TypeMap(), insertDoc, isSrcFieldNameWTUpperCase);
+            if(newCol2TypeMap.size() > 0){
+                logger.info("col name to add : {}, type: {}", newCol2TypeMap.keySet(), newCol2TypeMap.values());
+                myKudu.addColumns(newCol2TypeMap);
+            }*/
+            Operation operation = KuduOperation.getOperation(OperationType.CREATE, myKudu.getKuduTable(), insertDoc, isSrcFieldNameWTUpperCase);
             return operation != null ? Collections.singleton(operation) : null;
         } catch (Exception exc) {
             throw new DataException(exc);

@@ -18,6 +18,8 @@ package at.bronzels.kafka.connect.kudu;
 
 import at.bronzels.kafka.connect.DBCollection;
 import at.bronzels.libcdcdw.Constants;
+import at.bronzels.libcdcdw.conf.DistLockConf;
+import at.bronzels.libcdcdw.kudu.pool.MyKudu;
 import at.grahsl.kafka.connect.SinkRecordBatches;
 import at.grahsl.kafka.connect.VersionUtil;
 import at.grahsl.kafka.connect.converter.SinkConverter;
@@ -25,7 +27,6 @@ import at.grahsl.kafka.connect.processor.PostProcessor;
 import at.grahsl.kafka.connect.converter.SinkDocument;
 import at.bronzels.kafka.connect.kudu.cdc.CdcHandler;
 import at.bronzels.kafka.connect.kudu.writemodel.strategy.WriteModelStrategy;
-
 import io.vavr.Tuple2;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
@@ -50,7 +51,6 @@ public class KuduSinkTask extends SinkTask {
 
     private KuduSinkConnectorConfig sinkConfig;
     private KuduClient kuduClient;
-    private KuduSession kuduSession;
     private String prestoCatalog;
     private String database;
     private int remainingRetries;
@@ -63,7 +63,7 @@ public class KuduSinkTask extends SinkTask {
 
     private Map<String, WriteModelStrategy> deleteOneModelDefaultStrategies;
 
-    private Map<String, KuduTable> cachedCollections = new HashMap<>();
+    private Map<String , MyKudu> cacheCollection2MyKuduMap = new HashMap<>();
 
     private SinkConverter sinkConverter = new SinkConverter();
 
@@ -84,11 +84,6 @@ public class KuduSinkTask extends SinkTask {
         String host = sinkConfig.buildClientURI();
         prestoCatalog = sinkConfig.getKuduPrestoCatalog();
         database = sinkConfig.getKuduDatabase();
-        kuduClient = new KuduClient.KuduClientBuilder(host).defaultAdminOperationTimeoutMs(600000).build();
-        kuduSession = kuduClient.newSession();
-        kuduSession.setTimeoutMillis(60000);
-        kuduSession.setFlushMode(SessionConfiguration.FlushMode.MANUAL_FLUSH);
-        kuduSession.setMutationBufferSpace(10000);
 
         remainingRetries = sinkConfig.getInt(
                 KuduSinkConnectorConfig.MAX_NUM_RETRIES_CONF);
@@ -125,7 +120,7 @@ public class KuduSinkTask extends SinkTask {
                     //DBCollection.KUDU_TABLE_NAME_SCHEMA_PREFIX_SEP);
 
             batches.getBufferedBatches().forEach(batch -> {
-                        processSinkRecords(cachedCollections.get(namespace), batch);
+                        processSinkRecords(cacheCollection2MyKuduMap.get(namespace), batch);
                         KuduSinkConnectorConfig.RateLimitSettings rls =
                                 rateLimitSettings.getOrDefault(collection,
                                         rateLimitSettings.get(KuduSinkConnectorConfig.TOPIC_AGNOSTIC_KEY_NAME));
@@ -142,25 +137,25 @@ public class KuduSinkTask extends SinkTask {
                     }
             );
         });
-
     }
 
-    private void processSinkRecords(KuduTable collection, List<SinkRecord> batch) {
-        String collectionName = getCollectionName(collection);
+    private void processSinkRecords(MyKudu myKudu, List<SinkRecord> batch) {
+        String collectionName = myKudu.getTableName();
+        LOGGER.error("writing {} document(s) into collection [{}] ",batch.size(), myKudu.getKuduTable().getName());
         List<? extends Collection<Operation>> docsToWrite =
                 sinkConfig.isUsingCdcHandler(collectionName)
-                        ? buildWriteModelCDC(batch, collection, collectionName)
-                        : buildWriteModel(batch, collection, collectionName);
+                        ? buildWriteModelCDC(batch, myKudu, collectionName)
+                        : buildWriteModel(batch, myKudu, collectionName);
         try {
             if (!docsToWrite.isEmpty()) {
                 LOGGER.debug("bulk writing {} document(s) into collection [{}]",
-                        docsToWrite.size(), collection.getName());
+                        docsToWrite.size(), myKudu.getTableName());
                 for(Collection<Operation> opCols: docsToWrite) {
                     for(Operation op: opCols) {
-                        kuduSession.apply(op);
+                        myKudu.getKuduSession().apply(op);
                     }
                 }
-                List<OperationResponse> resp = kuduSession.flush();
+                List<OperationResponse> resp = myKudu.getKuduSession().flush();
                 LOGGER.debug("kudu flush result: " + resp);
             }
         } catch (KuduException kuduexc) {
@@ -168,7 +163,7 @@ public class KuduSinkTask extends SinkTask {
             } else*/ {
                 LOGGER.error("error on kudu operation", kuduexc);
                 LOGGER.error("writing {} document(s) into collection [{}] failed -> remaining retries ({})",
-                        docsToWrite.size(), collection.getName(), remainingRetries);
+                        docsToWrite.size(), myKudu.getKuduTable(), remainingRetries);
             }
             if (remainingRetries-- <= 0) {
                 throw new ConnectException("failed to write mongodb documents"
@@ -195,13 +190,10 @@ public class KuduSinkTask extends SinkTask {
             }
             String namespace = database + KuduSinkConnectorConfig.NAMESPACE_SEPARATOR + collection;
             //String namespace = database + DBCollection.KUDU_TABLE_NAME_SCHEMA_PREFIX_SEP + collection;
-            if(!cachedCollections.containsKey(namespace)) {
-                try {
-                    KuduTable kuduTable = kuduClient.openTable(prestoCatalog + Constants.KUDU_TABLE_NAME_AFTER_CATALOG_SEP + namespace);
-                    cachedCollections.put(namespace, kuduTable);
-                } catch (KuduException e) {
-                    e.printStackTrace();
-                }
+            if(!cacheCollection2MyKuduMap.containsKey(namespace)) {
+                MyKudu myKudu = new MyKudu(prestoCatalog, sinkConfig.buildClientURI(), database, collection, false, new DistLockConf(KuduSinkConnectorConfig.REDIS_URL_DEFAULT, KuduSinkConnectorConfig.DIST_LOCK_PREFIX));
+                myKudu.open();
+                cacheCollection2MyKuduMap.put(namespace, myKudu);
             }
 
             SinkRecordBatches batches = batchMapping.get(namespace);
@@ -218,7 +210,7 @@ public class KuduSinkTask extends SinkTask {
     }
 
     List<? extends Collection<Operation>>
-    buildWriteModel(Collection<SinkRecord> records, KuduTable collection, String collectionName) {
+    buildWriteModel(Collection<SinkRecord> records, MyKudu mykudu, String collectionName) {
         List<Collection<Operation>> docsToWrite = new ArrayList<>(records.size());
         LOGGER.debug("building write model for {} record(s)", records.size());
         records.forEach(record -> {
@@ -229,14 +221,14 @@ public class KuduSinkTask extends SinkTask {
                     if (doc.getValueDoc().isPresent()) {
                         docsToWrite.add(Collections.singleton(writeModelStrategies.getOrDefault(
                                 collectionName, writeModelStrategies.get(KuduSinkConnectorConfig.TOPIC_AGNOSTIC_KEY_NAME)
-                                ).createWriteModel(doc, collection, record.valueSchema())
+                                ).createWriteModel(doc, mykudu, record.valueSchema())
                         ));
                     } else {
                         if (doc.getKeyDoc().isPresent()
                                 && sinkConfig.isDeleteOnNullValues(record.topic())) {
                             docsToWrite.add(Collections.singleton(deleteOneModelDefaultStrategies.getOrDefault(collectionName,
                                     deleteOneModelDefaultStrategies.get(KuduSinkConnectorConfig.TOPIC_AGNOSTIC_KEY_NAME))
-                                    .createWriteModel(doc, collection, record.valueSchema())
+                                    .createWriteModel(doc, mykudu, record.valueSchema())
                             ));
                         } else {
                             LOGGER.error("skipping sink record " + record + "for which neither key doc nor value doc were present");
@@ -249,12 +241,12 @@ public class KuduSinkTask extends SinkTask {
     }
 
     List<? extends Collection<Operation>>
-    buildWriteModelCDC(Collection<SinkRecord> records, KuduTable collection, String collectionName) {
-        LOGGER.debug("building CDC write model for {} record(s) into collection {}", records.size(), collection.getName());
+    buildWriteModelCDC(Collection<SinkRecord> records, MyKudu mykudu, String collectionName) {
+        LOGGER.debug("building CDC write model for {} record(s) into collection {}", records.size(), mykudu.getTableName());
         return records.stream()
                 .map(sinkRecord -> new Tuple2<SinkDocument, Schema>(sinkConverter.convert(sinkRecord), sinkRecord.valueSchema()))
                 .map(tuple2 ->
-                    cdcHandlers.get(collectionName).handle(tuple2._1, collection, kuduClient, tuple2._2)
+                    cdcHandlers.get(collectionName).handle(tuple2._1, mykudu, tuple2._2)
                 )
                 //.filter(Objects::nonNull)
                 .flatMap(o -> o.map(Stream::of).orElseGet(Stream::empty))
@@ -270,13 +262,9 @@ public class KuduSinkTask extends SinkTask {
     @Override
     public void stop() {
         LOGGER.info("stopping Kudu sink task");
-        try {
-            if(kuduSession != null)
-                kuduSession.close();
-            if(kuduClient != null)
-                kuduClient.close();
-        } catch (KuduException e) {
-            e.printStackTrace();
+        for (MyKudu myKudu : cacheCollection2MyKuduMap.values()){
+            if (myKudu != null)
+                myKudu.close();
         }
     }
 

@@ -17,18 +17,19 @@
 package at.grahsl.kafka.connect.converter.types.sink.bson.logical;
 
 import at.grahsl.kafka.connect.converter.SinkFieldConverter;
-import org.apache.kafka.connect.data.Date;
-import org.bson.BsonDateTime;
+import org.bson.BsonTimestamp;
 import org.bson.BsonValue;
+import org.joda.time.DateTime;
 
-public class DateFieldConverter extends SinkFieldConverter {
+public class DebTimestampFieldConverter extends SinkFieldConverter {
 
-    public DateFieldConverter() {
-        super(Date.SCHEMA);
+    public DebTimestampFieldConverter() {
+        super(io.debezium.time.Timestamp.builder().schema());
     }
 
     @Override
     public BsonValue toBson(Object data) {
-        return new BsonDateTime(((java.util.Date)data).getTime());
+        return new BsonTimestamp(new DateTime(data).minusHours(8).getMillis());
     }
+
 }
