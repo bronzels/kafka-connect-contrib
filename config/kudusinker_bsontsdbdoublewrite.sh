@@ -9,7 +9,7 @@ curl -i -X POST -H "Accept:application/json" -H "Content-Type:application/json" 
         "transforms.route.regex": "([^.]+)datastatistic_tsdb([^.]+)",
         "transforms.route.replacement": "datastatistic_tsdb$2",
         "tasks.max": "3",
-        "topics": "2_0_4_2_datastatistic_tsdb_lxb_result_all,2_0_4_2_datastatistic_tsdb_lxb_result_all_bizid",
+        "topics": "2_0_4_2_result_all,2_0_4_2_result_all_bizid",
         "connection.uri": "beta-hbase01:7052",
         "max.num.retries": "3",
         "retries.defer.timeout": "5000",
@@ -20,7 +20,7 @@ curl -i -X POST -H "Accept:application/json" -H "Content-Type:application/json" 
         "rate.limiting.every.n": "10",
         "src.fieldname.with.uppercase": "false",
         "kudu.presto.catalog": "dw_v_0_0_1_20191223_1830",
-        "kudu.database": "bd"
+        "kudu.database": "tsdb"
     }
 }'
 
