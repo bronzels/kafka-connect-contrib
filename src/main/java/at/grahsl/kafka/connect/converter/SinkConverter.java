@@ -33,6 +33,7 @@ public class SinkConverter {
     private RecordConverter schemafulConverter = new AvroJsonSchemafulRecordConverter();
     private RecordConverter schemalessConverter = new JsonSchemalessRecordConverter();
     private RecordConverter rawConverter = new JsonRawStringRecordConverter();
+    private RecordConverter byteArrayBsonDocConverter = new ByteArrayBsonDocConverter();
 
     public SinkDocument convert(SinkRecord record) {
 
@@ -72,6 +73,12 @@ public class SinkConverter {
         if(data instanceof String) {
             logger.debug("using raw converter");
             return rawConverter;
+        }
+
+        //byte[] as BsonDocument if all no match
+        if(data instanceof byte[]) {
+            logger.debug("using raw converter");
+            return byteArrayBsonDocConverter;
         }
 
         throw new DataException("error: no converter present due to unexpected object type "

@@ -141,7 +141,7 @@ public class KuduSinkTask extends SinkTask {
 
     private void processSinkRecords(MyKudu myKudu, List<SinkRecord> batch) {
         String collectionName = myKudu.getTableName();
-        LOGGER.error("writing {} document(s) into collection [{}] ",batch.size(), myKudu.getKuduTable().getName());
+        LOGGER.info("writing {} document(s) into collection [{}] ",batch.size(), myKudu.getKuduTable().getName());
         List<? extends Collection<Operation>> docsToWrite =
                 sinkConfig.isUsingCdcHandler(collectionName)
                         ? buildWriteModelCDC(batch, myKudu, collectionName)
