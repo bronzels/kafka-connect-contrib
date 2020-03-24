@@ -24,6 +24,11 @@ curl -i -X POST -H "Accept:application/json" -H "Content-Type:application/json" 
     }
 }'
 
+INSERT INTO result_all_swp SELECT brokerid,login,CAST(bizid AS BIGINT),seriests,deposit,withdraw,money_followed_close_actual,money_cf,point_cf,standardlots_cf,deal_cf,money_close,deal_close,point_close,standardlots_close,money_cs,point_cs,standardlots_cs,deal_cs,_dwsyncts FROM result_all;
+INSERT INTO result_all_bizid_swp SELECT brokerid,login,CAST(bizid AS BIGINT),seriests,deposit,withdraw,money_followed_close_actual,money_cf,point_cf,standardlots_cf,deal_cf,money_close,deal_close,point_close,standardlots_close,money_cs,point_cs,standardlots_cs,deal_cs,_dwsyncts  FROM result_all_bizid ;
+INSERT INTO result_symall_bizid_swp SELECT brokerid,login,standardsymbol,CAST(bizid AS BIGINT),seriests,money_profit_short_close,_dwsyncts FROM result_symall_bizid;
+INSERT INTO result_symall_swp SELECT brokerid,login,standardsymbol,seriests,CAST(bizid AS BIGINT),money_profit_short_close,_dwsyncts FROM result_symall;
+
 curl -H "Accept:application/json" beta-hbase01:8984/connectors/
 curl -H "Accept:application/json" beta-hbase01:8984/connectors/lxb-bsondoc-tsdb-all-kudu-nativeapi-sink-connector10
 curl -H "Accept:application/json" beta-hbase01:8984/connectors/lxb-bsondoc-tsdb-all-kudu-nativeapi-sink-connector10/status
