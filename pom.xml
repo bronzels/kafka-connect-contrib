@@ -196,12 +196,6 @@
         </dependency>
 
         <dependency>
-        <groupId>at.bronzels</groupId>
-        <artifactId>libcdcdwstr</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
-        </dependency>
-
-        <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
             <version>${logback.version}</version>
