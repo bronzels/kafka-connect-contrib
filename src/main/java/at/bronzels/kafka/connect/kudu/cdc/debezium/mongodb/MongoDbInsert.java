@@ -19,8 +19,7 @@ package at.bronzels.kafka.connect.kudu.cdc.debezium.mongodb;
 import at.bronzels.libcdcdw.OperationType;
 import at.bronzels.kafka.connect.kudu.cdc.CdcOperation;
 import at.bronzels.libcdcdw.kudu.pool.MyKudu;
-import at.bronzels.libcdcdwstr.flink.global.MyParameterTool;
-import at.bronzels.libcdcdwstr.flink.util.MyKuduTypeValue;
+import at.bronzels.libcdcdw.util.MyKuduTypeValue;
 import at.grahsl.kafka.connect.converter.SinkDocument;
 import at.bronzels.libcdcdw.kudu.KuduOperation;
 
