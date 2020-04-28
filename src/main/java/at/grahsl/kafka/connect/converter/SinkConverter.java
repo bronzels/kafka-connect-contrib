@@ -76,13 +76,15 @@ public class SinkConverter {
         }
 
         //byte[] as BsonDocument if all no match
-        if(data instanceof byte[]) {
+        //if(data instanceof byte[]) {
             logger.debug("using raw converter");
             return byteArrayBsonDocConverter;
-        }
+        //}
 
+        /*
         throw new DataException("error: no converter present due to unexpected object type "
                                     + data.getClass().getName());
+         */
     }
 
 }
