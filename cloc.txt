@@ -1,0 +1,20 @@
+cloc kafka-connect-contrib --exclude-ext=json,iml,gitignore,txt --exclude-dir=.idea,target
+     143 text files.
+     143 unique files.
+      71 files ignored.
+
+github.com/AlDanial/cloc v 1.74  T=0.35 s (383.0 files/s, 42488.2 lines/s)
+-------------------------------------------------------------------------------
+Language                     files          blank        comment           code
+-------------------------------------------------------------------------------
+Java                           122           2412           1843           8736
+Markdown                         1            170              0            523
+Maven                            1             18            133            453
+Bourne Shell                     4             29             17            260
+Groovy                           1             11              0             79
+YAML                             1              4              0             71
+XML                              2              5              4             54
+SQL                              2              6              1             37
+-------------------------------------------------------------------------------
+SUM:                           134           2655           1998          10213
+-------------------------------------------------------------------------------

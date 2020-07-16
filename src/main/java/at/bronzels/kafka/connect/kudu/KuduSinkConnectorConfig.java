@@ -40,9 +40,12 @@ import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 public class KuduSinkConnectorConfig extends SinkConnectorConfig {
-    public static final String CONNECTION_URI_DEFAULT = "beta-hbase01:7051";
-    public static final String REDIS_URL_DEFAULT = "beta-hbase01:6379";
+    public static final String CONNECTION_URI_DEFAULT = "kuduhost:kuduport";
     public static final String DIST_LOCK_PREFIX = "metabase";
+
+    public static final String REDIS_URL_DEFAULT = "redishost:redisport";
+    public static final String REDIS_URL_CONF = "redis.url";
+    protected static final String REDIS_URL_DOC = "redis url as host:port, used in dist lock when new field not in schema is detected and table altering to be done";
 
     public static final String KUDU_PRESTO_CATALOG_DEFAULT = "presto";
     public static final String KUDU_PRESTO_CATALOG_CONF = "kudu.presto.catalog";
@@ -115,6 +118,7 @@ public class KuduSinkConnectorConfig extends SinkConnectorConfig {
                 return result;
             }
         }
+                .define(REDIS_URL_CONF, Type.STRING, REDIS_URL_DEFAULT, Importance.MEDIUM, REDIS_URL_DOC)
                 .define(SRC_FIELDNAME_WITH_UPPERCASE_CONF, Type.BOOLEAN, SRC_FIELDNAME_WITH_UPPERCASE_DEFAULT, Importance.MEDIUM, SRC_FIELDNAME_WITH_UPPERCASE_DOC)
                 .define(KUDU_PRESTO_CATALOG_CONF, Type.STRING, KUDU_PRESTO_CATALOG_DEFAULT, Importance.MEDIUM, KUDU_PRESTO_CATALOG_DOC)
                 .define(KUDU_DATABASE_CONF, Type.STRING, KUDU_DATABASE_DEFAULT, Importance.MEDIUM, KUDU_DATABASE_DOC)
@@ -139,6 +143,9 @@ public class KuduSinkConnectorConfig extends SinkConnectorConfig {
                 ;
     }
 
+    public String getRedisUrl() {
+        return getString(REDIS_URL_CONF);
+    }
     public String getKuduPrestoCatalog() {
         return getString(KUDU_PRESTO_CATALOG_CONF);
     }

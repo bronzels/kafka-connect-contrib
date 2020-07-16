@@ -51,6 +51,7 @@ public class KuduSinkTask extends SinkTask {
 
     private KuduSinkConnectorConfig sinkConfig;
     private KuduClient kuduClient;
+    private String redisUrl;
     private String prestoCatalog;
     private String database;
     private int remainingRetries;
@@ -82,6 +83,7 @@ public class KuduSinkTask extends SinkTask {
         sinkConfig = new KuduSinkConnectorConfig(props);
 
         String host = sinkConfig.buildClientURI();
+        redisUrl = sinkConfig.getRedisUrl();
         prestoCatalog = sinkConfig.getKuduPrestoCatalog();
         database = sinkConfig.getKuduDatabase();
 
@@ -191,7 +193,8 @@ public class KuduSinkTask extends SinkTask {
             String namespace = database + KuduSinkConnectorConfig.NAMESPACE_SEPARATOR + collection;
             //String namespace = database + DBCollection.KUDU_TABLE_NAME_SCHEMA_PREFIX_SEP + collection;
             if(!cacheCollection2MyKuduMap.containsKey(namespace)) {
-                MyKudu myKudu = new MyKudu(prestoCatalog, sinkConfig.buildClientURI(), database, collection, false, new DistLockConf(KuduSinkConnectorConfig.REDIS_URL_DEFAULT, KuduSinkConnectorConfig.DIST_LOCK_PREFIX));
+                //MyKudu myKudu = new MyKudu(prestoCatalog, sinkConfig.buildClientURI(), database, collection, false, new DistLockConf(KuduSinkConnectorConfig.REDIS_URL_DEFAULT, KuduSinkConnectorConfig.DIST_LOCK_PREFIX));
+                MyKudu myKudu = new MyKudu(prestoCatalog, sinkConfig.buildClientURI(), database, collection, false, new DistLockConf(redisUrl, KuduSinkConnectorConfig.DIST_LOCK_PREFIX));
                 myKudu.open();
                 cacheCollection2MyKuduMap.put(namespace, myKudu);
             }
